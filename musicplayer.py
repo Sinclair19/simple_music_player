@@ -365,5 +365,6 @@ class MainFrame(wx.Frame):
 if __name__ == "__main__":
     app = wx.App()
     frame = MainFrame()
-    frame.Show()
+    frame.Show(True)
     app.MainLoop()
+    wx.Exit()
