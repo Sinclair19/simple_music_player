@@ -136,7 +136,7 @@ class MainFrame(wx.Frame):
         self.play_stop_button = wx.BitmapButton(self.play_music_panel, -1, self.play_bmp,  pos=(380, 45), size=(40, 40))
         next_music_button = wx.BitmapButton(self.play_music_panel, -1, next_music_bpm, pos=(430, 50), size=(30, 30))
         # 调节音量的按钮
-        volume_slider = wx.Slider(self.play_music_panel, -1, 50, 0, 100, pos=(500, 0), size=(50, -1), style=wx.SL_VERTICAL|wx.SL_INVERSE)
+        volume_slider = wx.Slider(self.play_music_panel, -1, 50, 0, 100, pos=(490, 0), size=(50, -1), style=wx.SL_VERTICAL|wx.SL_INVERSE)
 
         # 上述按钮的监听器
         last_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_last_music)
