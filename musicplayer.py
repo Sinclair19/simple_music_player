@@ -20,8 +20,8 @@ class MainFrame(wx.Frame):
     def __init__(self):
         '''构造函数'''
         # 播放器的整体属性
-        self.width = 1920
-        self.height = 1080
+        self.width = 1280
+        self.height = 720
         self.volume = 0.5
         self.local_music_folder = "music_folder"
         wx.Frame.__init__(self, None, -1, APP_TITLE)
@@ -33,7 +33,7 @@ class MainFrame(wx.Frame):
         self.lyrcis_static_text = []  # 当前播放的音乐的歌词列表
         self.play_stop_button = None  # 播放、暂停按钮
         self.current_music_state = 0  # 是否有音乐在播放，0表示否
-        self.IsPaused = False # 是否暂停
+        self.IsPaused = False  # 是否暂停
         self.current_music_index = 0  # 当前音乐的索引
 
         # 初始化本地歌曲列表
@@ -85,7 +85,7 @@ class MainFrame(wx.Frame):
         '''
         self.local_music_name_list.clear()  # 这一步必须有
         for local_music_file_name in os.listdir(self.local_music_folder):
-            if local_music_file_name.endswith(".mp3"):
+            if local_music_file_name.endswith((".wav", ".flac", ".mp3")):
                 self.local_music_name_list.append(local_music_file_name)
 
     def draw_navi_panel(self):
@@ -111,7 +111,7 @@ class MainFrame(wx.Frame):
         # 音乐列表
         local_music_num = len(self.local_music_name_list)
         for music_index in range(local_music_num):
-            music_full_name = self.local_music_name_list[music_index].replace(".mp3", "")
+            music_full_name = self.local_music_name_list[music_index].split('.')[0]
             if len(music_full_name) > MAX_MUSIC_NAME_LEN:
                 music_full_name = music_full_name[0:MAX_MUSIC_NAME_LEN] + "..."
             music_text = wx.StaticText(self.music_list_panel, -1, music_full_name,
@@ -198,7 +198,7 @@ class MainFrame(wx.Frame):
 
     def get_lyric_path(self):
         current_music_path = self.get_path_by_name(self.local_music_name_list[self.current_music_index])
-        lyric_path = current_music_path.replace(".mp3", ".lrc")
+        lyric_path = current_music_path.split('.')[0]+'.lrc'
         if os.path.exists(lyric_path):
             return lyric_path
         else:
@@ -220,10 +220,11 @@ class MainFrame(wx.Frame):
         self.current_music_state = 1
         self.play_stop_button.SetBitmap(self.stop_bmp)
         # 更改当前播放的音乐的名字
-        current_music_name = self.local_music_name_list[self.current_music_index].replace(".mp3", "")
+        current_music_name = self.local_music_name_list[self.current_music_index]
+        namelist = current_music_name.split('.')
         if len(current_music_name) > MAX_MUSIC_NAME_LEN:
             current_music_name = current_music_name[0:MAX_MUSIC_NAME_LEN] + "..."
-        self.current_music_static_text.SetLabelText(current_music_name)
+        self.current_music_static_text.SetLabelText(namelist[0])
 
     def play_index_music(self, music_index):
         '''
