@@ -356,8 +356,10 @@ class MainFrame(wx.Frame):
                         relative_start_index = lyric_index
                         self.redraw_music_lyric_panel(start_index=relative_start_index)
                     self.lyrcis_static_text[lyric_index - relative_start_index].SetOwnForegroundColour((227, 62, 51))
-                    # 这句话千万不能少，少了颜色不会刷新（来自调试了4个小时的忠告）
                     self.lyrcis_static_text[lyric_index - relative_start_index].Refresh()
+                    if (lyric_index - relative_start_index - 1) != -1:
+                        self.lyrcis_static_text[lyric_index - relative_start_index - 1].SetOwnForegroundColour((41, 36, 33))
+                        self.lyrcis_static_text[lyric_index - relative_start_index - 1].Refresh()
                     break
             time.sleep(1)
 
