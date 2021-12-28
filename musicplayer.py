@@ -43,10 +43,10 @@ class MainFrame(wx.Frame):
         self.current_music_static_text = None  # 当前播放的音乐的名字
 
         # 按钮使用的图片
-        self.play_bmp = wx.Image("resources/play1.png", wx.BITMAP_TYPE_PNG).Rescale(50, 50).ConvertToBitmap()
-        self.stop_bmp = wx.Image("resources/stop.png", wx.BITMAP_TYPE_PNG).Rescale(50, 50).ConvertToBitmap()
-        self.last_music_bpm = wx.Image("resources/last_music.png", wx.BITMAP_TYPE_PNG).Rescale(40, 40).ConvertToBitmap()
-        self.next_music_bpm = wx.Image("resources/next_music.png", wx.BITMAP_TYPE_PNG).Rescale(40, 40).ConvertToBitmap()
+        self.play_png = wx.Image("resources/play.png", wx.BITMAP_TYPE_PNG).Rescale(50, 50).ConvertToBitmap()
+        self.stop_png = wx.Image("resources/stop.png", wx.BITMAP_TYPE_PNG).Rescale(50, 50).ConvertToBitmap()
+        self.last_music_png = wx.Image("resources/last_music.png", wx.BITMAP_TYPE_PNG).Rescale(40, 40).ConvertToBitmap()
+        self.next_music_png = wx.Image("resources/next_music.png", wx.BITMAP_TYPE_PNG).Rescale(40, 40).ConvertToBitmap()
 
         # 导航栏所在的panel
         self.navi_panel = None
@@ -125,7 +125,7 @@ class MainFrame(wx.Frame):
                                        pos=(0, music_index * 40 + 25), size=(270, 30), style=wx.ALIGN_LEFT)
             music_text.SetOwnForegroundColour((41, 36, 33))
             music_text.Refresh()  # 这句话不能少
-            play_button = wx.BitmapButton(self.music_list_panel, -1, self.play_bmp, pos=(280, music_index * 40 + 20),
+            play_button = wx.BitmapButton(self.music_list_panel, -1, self.play_png, pos=(280, music_index * 40 + 20),
                                           size=(20, 20))
             play_button.Bind(wx.EVT_LEFT_DOWN, lambda e, index=music_index: self.play_index_music(index))
 
@@ -136,13 +136,16 @@ class MainFrame(wx.Frame):
         self.current_music_static_text = wx.StaticText(self.play_music_panel, -1, "请选择歌曲", pos=(210, 0), size=(80, 30), style=wx.ALIGN_LEFT)
         self.current_music_static_text.SetOwnForegroundColour((41, 36, 33))
 
-        last_music_button = wx.BitmapButton(self.play_music_panel, -1, self.last_music_bpm, pos=(260, 50), size=(40, 40))
-        last_music_button.SetToolTip(u'上一首')
-
-        self.play_stop_button = wx.BitmapButton(self.play_music_panel, -1, self.play_bmp,  pos=(320, 45), size=(50, 50))
+        self.play_stop_button = wx.BitmapButton(self.play_music_panel, -1, self.play_png,  pos=(320, 45), size=(50, 50))
+        self.play_stop_button.SetWindowStyleFlag(wx.NO_BORDER)
         self.play_stop_button.SetToolTip(u'播放/暂停')
 
-        next_music_button = wx.BitmapButton(self.play_music_panel, -1, self.next_music_bpm, pos=(390, 50), size=(40, 40))
+        last_music_button = wx.BitmapButton(self.play_music_panel, -1, self.last_music_png, pos=(260, 50), size=(40, 40))
+        last_music_button.SetWindowStyleFlag(wx.NO_BORDER)
+        last_music_button.SetToolTip(u'上一首')
+
+        next_music_button = wx.BitmapButton(self.play_music_panel, -1, self.next_music_png, pos=(390, 50), size=(40, 40))
+        next_music_button.SetWindowStyleFlag(wx.NO_BORDER)
         next_music_button.SetToolTip(u'下一首')
         # 调节音量的按钮
         self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.volume*100), 0, 100, pos=(490, 30), size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
@@ -233,7 +236,7 @@ class MainFrame(wx.Frame):
         # step3：开启新线程，追踪歌词
         self.display_lyric()
         self.current_music_state = 1
-        self.play_stop_button.SetBitmap(self.stop_bmp)
+        self.play_stop_button.SetBitmap(self.stop_png)
         # 更改当前播放的音乐的名字
         current_music_name = self.local_music_name_list[self.current_music_index]
         namelist = current_music_name.split('.')
@@ -256,14 +259,14 @@ class MainFrame(wx.Frame):
                 print("有音乐在播放，需要暂停")
                 self.music.pause()
                 self.current_music_state = 0
-                self.play_stop_button.SetBitmap(self.play_bmp)
+                self.play_stop_button.SetBitmap(self.play_png)
                 self.IsPaused = True
                 print(self.music.get_busy())
             else:  # 恢复暂停的音乐
                 self.music.unpause()
                 self.current_music_state = 1
                 self.IsPaused = False
-                self.play_stop_button.SetBitmap(self.stop_bmp)
+                self.play_stop_button.SetBitmap(self.stop_png)
         else:  # 重新载入音乐
             self.play_music()
 
@@ -341,10 +344,12 @@ class MainFrame(wx.Frame):
             if content_list[i].index(']') == 6:
                 templist = content_list[i].split(']')
                 templist[0] = templist[0][:6] + '.00'
+                templist[1] = templist[1].strip()
                 content_list[i] = ']'.join(templist)
             elif content_list[i].index(']') == 10:
                 templist = content_list[i].split(']')
                 templist[0] = templist[0][:9]
+                templist[1] = templist[1].strip()
                 content_list[i] = ']'.join(templist)
             else:
                 continue
