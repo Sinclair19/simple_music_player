@@ -1,6 +1,5 @@
 import wx
-import urllib.request
-import pygame  # pip install pygame
+import pygame
 import os
 import re
 import time
@@ -8,12 +7,11 @@ from threading import Thread
 import math
 from mutagen import File
 #from wx.media import MediaCtrl
-import datetime
 
 APP_TITLE = u'音乐播放器'
 MAX_LYRIC_ROW = 18
 LYRIC_ROW_REG = '\[[0-9]{2}:[0-9]{2}.[0-9]{2,}\]'
-MAX_MUSIC_NAME_LEN = 18  # 歌名展示的时候最长字符限制
+MAX_MUSIC_NAME_LEN = 70  # 歌名展示的时候最长字符限制
 
 
 class MainFrame(wx.Frame):
@@ -45,8 +43,10 @@ class MainFrame(wx.Frame):
         self.current_music_static_text = None  # 当前播放的音乐的名字
 
         # 按钮使用的图片
-        self.play_bmp = wx.Image("resources/play1.png", wx.BITMAP_TYPE_PNG).Rescale(30, 30).ConvertToBitmap()
-        self.stop_bmp = wx.Image("resources/stop.png", wx.BITMAP_TYPE_PNG).Rescale(30, 30).ConvertToBitmap()
+        self.play_bmp = wx.Image("resources/play1.png", wx.BITMAP_TYPE_PNG).Rescale(50, 50).ConvertToBitmap()
+        self.stop_bmp = wx.Image("resources/stop.png", wx.BITMAP_TYPE_PNG).Rescale(50, 50).ConvertToBitmap()
+        self.last_music_bpm = wx.Image("resources/last_music.png", wx.BITMAP_TYPE_PNG).Rescale(40, 40).ConvertToBitmap()
+        self.next_music_bpm = wx.Image("resources/next_music.png", wx.BITMAP_TYPE_PNG).Rescale(40, 40).ConvertToBitmap()
 
         # 导航栏所在的panel
         self.navi_panel = None
@@ -114,7 +114,7 @@ class MainFrame(wx.Frame):
         # 绘制面板整体
         if self.music_list_panel is not None:
             self.music_list_panel.Destroy()
-        self.music_list_panel = wx.Panel(self, id=-1, pos=(100, 0), size=(300, self.height - 100))
+        self.music_list_panel = wx.Panel(self, id=-1, pos=(150, 0), size=(350, self.height - 150))
         # 音乐列表
         local_music_num = len(self.local_music_name_list)
         for music_index in range(local_music_num):
@@ -122,7 +122,7 @@ class MainFrame(wx.Frame):
             if len(music_full_name) > MAX_MUSIC_NAME_LEN:
                 music_full_name = music_full_name[0:MAX_MUSIC_NAME_LEN] + "..."
             music_text = wx.StaticText(self.music_list_panel, -1, music_full_name,
-                                       pos=(0, music_index * 40 + 20), size=(270, 30), style=wx.ALIGN_RIGHT)
+                                       pos=(0, music_index * 40 + 25), size=(270, 30), style=wx.ALIGN_LEFT)
             music_text.SetOwnForegroundColour((41, 36, 33))
             music_text.Refresh()  # 这句话不能少
             play_button = wx.BitmapButton(self.music_list_panel, -1, self.play_bmp, pos=(280, music_index * 40 + 20),
@@ -133,28 +133,28 @@ class MainFrame(wx.Frame):
         # 播放音乐所在的panel
         self.play_music_panel = wx.Panel(self, id=-1, pos=(0, self.height - 150), size=(self.width, 150))
         # 歌的名字
-        self.current_music_static_text = wx.StaticText(self.play_music_panel, -1, "请选择歌曲",
-                                                       pos=(100, 15), size=(200, 30), style=wx.ALIGN_RIGHT)
+        self.current_music_static_text = wx.StaticText(self.play_music_panel, -1, "请选择歌曲", pos=(210, 0), size=(80, 30), style=wx.ALIGN_LEFT)
         self.current_music_static_text.SetOwnForegroundColour((41, 36, 33))
-        last_music_bpm = wx.Image("resources/last_music.png", wx.BITMAP_TYPE_PNG).Rescale(30, 30).ConvertToBitmap()
-        next_music_bpm = wx.Image("resources/next_music.png", wx.BITMAP_TYPE_PNG).Rescale(30, 30).ConvertToBitmap()
 
-        last_music_button = wx.BitmapButton(self.play_music_panel, -1, last_music_bpm, pos=(340, 50), size=(30, 30))
+        last_music_button = wx.BitmapButton(self.play_music_panel, -1, self.last_music_bpm, pos=(260, 50), size=(40, 40))
         last_music_button.SetToolTip(u'上一首')
-        self.play_stop_button = wx.BitmapButton(self.play_music_panel, -1, self.play_bmp,  pos=(380, 45), size=(40, 40))
+
+        self.play_stop_button = wx.BitmapButton(self.play_music_panel, -1, self.play_bmp,  pos=(320, 45), size=(50, 50))
         self.play_stop_button.SetToolTip(u'播放/暂停')
-        next_music_button = wx.BitmapButton(self.play_music_panel, -1, next_music_bpm, pos=(430, 50), size=(30, 30))
+
+        next_music_button = wx.BitmapButton(self.play_music_panel, -1, self.next_music_bpm, pos=(390, 50), size=(40, 40))
         next_music_button.SetToolTip(u'下一首')
         # 调节音量的按钮
-        self.volume_slider = wx.Slider(self.play_music_panel, -1, 50, 0, 100, pos=(490, 0), size=(50, -1), style=wx.SL_VERTICAL|wx.SL_INVERSE)
+        self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.volume*100), 0, 100, pos=(490, 30), size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
         #self.volume_slider.SetToolTipString(u'音量:%d%%' %self.volume_slider.GetValue())
-        play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 40), size=(600, -1))
+        play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1))
         play_slider.SetToolTip(u'播放进度')
         # 上述按钮的监听器
         last_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_last_music)
         self.play_stop_button.Bind(wx.EVT_LEFT_DOWN, self.play_stop_music)
         next_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_next_music)
         self.volume_slider.Bind(wx.EVT_SLIDER, self.change_volume)
+        self.volume_slider.Bind(wx.EVT_SCROLL, self.change_volume)
         #self.volume_slider.Bind(wx.EVT_SCROLL, self.ChangeVolume)
 
     def redraw_music_lyric_panel(self, start_index=0):
@@ -179,7 +179,7 @@ class MainFrame(wx.Frame):
         歌词所在的面板的控制
         :return:
         '''
-        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(400, 60), size=(self.width - 400, self.height - 160))
+        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(400, 10), size=(self.width - 400, self.height - 160))
 
         # 获取歌词
         lyric_list = self.get_lyrics()
@@ -189,25 +189,10 @@ class MainFrame(wx.Frame):
                 lyric = lyric_list[lyric_index]
             else:
                 lyric = ""
-            lyric_row = wx.StaticText(self.music_lyric_panel, -1, lyric, pos=(300, 30 * lyric_index + 10),
-                                  size=(200, -1), style=wx.ALIGN_CENTER_HORIZONTAL)
+            lyric_row = wx.StaticText(self.music_lyric_panel, -1, lyric, pos=(250, 30 * lyric_index + 10),
+                                  size=(400, -1), style=wx.ALIGN_CENTER)
             lyric_row.SetOwnForegroundColour((41, 36, 33))
             self.lyrcis_static_text.append(lyric_row)
-
-        '''    def draw_down_music_panel(self):
-        \'''
-        下载音乐所在的面板
-        :return:
-        \'''
-        self.down_music_panel = wx.Panel(self, id=-1, pos=(400, 0), size=(self.width - 400, 60))
-        # 下载地址输入框
-        self.input_url_text_ctrl = wx.TextCtrl(self.down_music_panel, -1, "请输入下载链接", pos=(100, 20), size=(600, 30))
-        #self.input_url_text_ctrl.SetOwnBackgroundColour((63, 63, 63))
-        # 绘制下载图标
-        down_bmp = wx.Image("resources/down.png", wx.BITMAP_TYPE_PNG).Rescale(30, 30).ConvertToBitmap()
-        self.down_button = wx.BitmapButton(self.down_music_panel, -1, down_bmp, pos=(700, 20), size=(30, 30))
-        # 监听下载图标按钮的鼠标点击事件
-        self.down_button.Bind(wx.EVT_LEFT_DOWN, self.download_music)'''
 
     def draw_music_cover_panel(self):
         self.music_cover_panel = wx.Panel(self, id=-1, pos=(0, 480), size=(200, 200))
@@ -363,7 +348,6 @@ class MainFrame(wx.Frame):
                 content_list[i] = ']'.join(templist)
             else:
                 continue
-        print(content_list)
         lyrics_list = []
         for content in content_list:
             if re.match(LYRIC_ROW_REG, content):
@@ -390,7 +374,7 @@ class MainFrame(wx.Frame):
                     if lyric_index > 0 and lyric_index % MAX_LYRIC_ROW == 0:
                         relative_start_index = lyric_index
                         self.redraw_music_lyric_panel(start_index=relative_start_index)
-                    self.lyrcis_static_text[lyric_index - relative_start_index].SetOwnForegroundColour((227, 62, 51))
+                    self.lyrcis_static_text[lyric_index - relative_start_index].SetOwnForegroundColour((61, 89, 171))
                     self.lyrcis_static_text[lyric_index - relative_start_index].Refresh()
                     if (lyric_index - relative_start_index - 1) != -1 :
                         self.lyrcis_static_text[lyric_index - relative_start_index - 1].SetOwnForegroundColour((41, 36, 33))
@@ -408,26 +392,6 @@ class MainFrame(wx.Frame):
         #filename = self.current_music_name+'.png'
         with open(write_path, 'wb') as img:
             img.write(cover)
-
-    '''    def download_music(self, evt):
-        \'''
-        下载音乐
-        :param evt:
-        :return:
-        \'''
-        # 获取文本框中输入的下载地址
-        music_down_url = self.input_url_text_ctrl.GetValue()
-        # 给下载的音乐在本地确定一个存储地址
-        down_music_path = os.path.join(self.local_music_folder, datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + ".mp3")
-        before_music_name = self.local_music_name_list[self.current_music_index]
-        # 开始下载
-        urllib.request.urlretrieve(music_down_url, down_music_path)
-        # 下载完成后，重新绘制音乐列表面板
-        self.draw_music_list_panel()
-        # 调整当前音乐的索引
-        for index in range(len(self.local_music_name_list)):
-            if before_music_name == self.local_music_name_list[index]:
-                self.current_music_index = index'''
 
 
 if __name__ == "__main__":
