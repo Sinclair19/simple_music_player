@@ -210,14 +210,13 @@ class MainFrame(wx.Frame):
         self.down_button.Bind(wx.EVT_LEFT_DOWN, self.download_music)'''
 
     def draw_music_cover_panel(self):
-        self.music_cover_panel = wx.Panel(self, id=-1, pos=(0, self.height - 150), size=(150, 150))
+        self.music_cover_panel = wx.Panel(self, id=-1, pos=(0, 480), size=(200, 200))
+        self.music_cover_panel.Refresh()
 
     def redraw_music_cover_panel(self,filepath):
         self.music_cover_panel = wx.Panel(self, id=-1, pos=(0, 480), size=(200, 200))
         path = filepath.split('\\')[0] +'\.tmp\cover.png'
-        #print(path)
         music_cover = wx.Image(path, wx.BITMAP_TYPE_ANY).Rescale(200, 200).ConvertToBitmap()
-        #print(music_cover)
         music_cover_panel = wx.StaticBitmap(self.music_cover_panel, -1, music_cover, pos=(0, 0), size=(200, 200))
         music_cover_panel.Refresh()
 
@@ -244,6 +243,8 @@ class MainFrame(wx.Frame):
         if self.current_music_name.split('.')[-1] == 'mp3':
             self.get_music_cover(current_music_path)
             self.redraw_music_cover_panel(current_music_path)
+        else:
+            self.draw_music_cover_panel()
         # step3：开启新线程，追踪歌词
         self.display_lyric()
         self.current_music_state = 1
@@ -344,11 +345,25 @@ class MainFrame(wx.Frame):
     def parse_lyrics(self):
         current_lyric_path = self.get_lyric_path()
         if current_lyric_path is None or not os.path.exists(current_lyric_path):
-            content_list = ["[00:00.00]暂无歌词"]
+            content_list = ["[00:00.00]纯音乐或暂无歌词"]
         else:
             # 读文件内容
             with open(current_lyric_path, 'r', encoding="utf-8") as file_pointer:
                 content_list = file_pointer.readlines()
+        #标准化处理
+        for i in range(len(content_list)):
+            content_list[i] = content_list[i].replace('\n', '')
+            if content_list[i].index(']') == 6:
+                templist = content_list[i].split(']')
+                templist[0] = templist[0][:6] + '.00'
+                content_list[i] = ']'.join(templist)
+            elif content_list[i].index(']') == 10:
+                templist = content_list[i].split(']')
+                templist[0] = templist[0][:9]
+                content_list[i] = ']'.join(templist)
+            else:
+                continue
+        print(content_list)
         lyrics_list = []
         for content in content_list:
             if re.match(LYRIC_ROW_REG, content):
@@ -370,16 +385,19 @@ class MainFrame(wx.Frame):
             current_time = float(self.music.get_pos() / 1000)
             for lyric_index, lyrics_time_dict in enumerate(lyrics_time_dict_list):
                 lyric_time = list(lyrics_time_dict.keys())[0]
-                if math.fabs(lyric_time - current_time) < 0.7:
+                if math.fabs(lyric_time - current_time) < 0.8:
                     # 当歌词已经超过底部了，则刷新歌词面板，展示第二页的歌词
                     if lyric_index > 0 and lyric_index % MAX_LYRIC_ROW == 0:
                         relative_start_index = lyric_index
                         self.redraw_music_lyric_panel(start_index=relative_start_index)
                     self.lyrcis_static_text[lyric_index - relative_start_index].SetOwnForegroundColour((227, 62, 51))
                     self.lyrcis_static_text[lyric_index - relative_start_index].Refresh()
-                    if (lyric_index - relative_start_index - 1) != -1:
+                    if (lyric_index - relative_start_index - 1) != -1 :
                         self.lyrcis_static_text[lyric_index - relative_start_index - 1].SetOwnForegroundColour((41, 36, 33))
                         self.lyrcis_static_text[lyric_index - relative_start_index - 1].Refresh()
+                    else:
+                        self.lyrcis_static_text[0].SetOwnForegroundColour((41, 36, 33))
+                        self.lyrcis_static_text[0].Refresh()
                     break
             time.sleep(1)
 
