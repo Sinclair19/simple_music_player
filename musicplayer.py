@@ -6,7 +6,8 @@ import re
 import time
 from threading import Thread
 import math
-from wx.media import MediaCtrl
+from mutagen import File
+#from wx.media import MediaCtrl
 import datetime
 
 APP_TITLE = u'音乐播放器'
@@ -38,7 +39,7 @@ class MainFrame(wx.Frame):
         self.current_music_state = 0  # 是否有音乐在播放，0表示否
         self.IsPaused = False  # 是否暂停
         self.current_music_index = 0  # 当前音乐的索引
-
+        self.current_music_name = None
         # 初始化本地歌曲列表
         self.get_local_music_list()
         self.current_music_static_text = None  # 当前播放的音乐的名字
@@ -62,6 +63,9 @@ class MainFrame(wx.Frame):
         # 歌词部分所在的panel
         self.music_lyric_panel = None
         self.draw_music_lyric_panel()
+
+        self.music_cover_panel = None
+        self.draw_music_cover_panel()
 
         pygame.mixer.init()
         self.music = pygame.mixer.music
@@ -205,6 +209,18 @@ class MainFrame(wx.Frame):
         # 监听下载图标按钮的鼠标点击事件
         self.down_button.Bind(wx.EVT_LEFT_DOWN, self.download_music)'''
 
+    def draw_music_cover_panel(self):
+        self.music_cover_panel = wx.Panel(self, id=-1, pos=(0, self.height - 150), size=(150, 150))
+
+    def redraw_music_cover_panel(self,filepath):
+        self.music_cover_panel = wx.Panel(self, id=-1, pos=(0, 480), size=(200, 200))
+        path = filepath.split('\\')[0] +'\.tmp\cover.png'
+        #print(path)
+        music_cover = wx.Image(path, wx.BITMAP_TYPE_ANY).Rescale(200, 200).ConvertToBitmap()
+        #print(music_cover)
+        music_cover_panel = wx.StaticBitmap(self.music_cover_panel, -1, music_cover, pos=(0, 0), size=(200, 200))
+        music_cover_panel.Refresh()
+
     def get_lyric_path(self):
         current_music_path = self.get_path_by_name(self.local_music_name_list[self.current_music_index])
         lyric_path = current_music_path.split('.')[0]+'.lrc'
@@ -224,6 +240,10 @@ class MainFrame(wx.Frame):
         self.music.play(loops=1, start=0.0)
         # step2：重写歌词面板
         self.redraw_music_lyric_panel()
+        self.current_music_name = current_music_path.split('\\')[-1]
+        if self.current_music_name.split('.')[-1] == 'mp3':
+            self.get_music_cover(current_music_path)
+            self.redraw_music_cover_panel(current_music_path)
         # step3：开启新线程，追踪歌词
         self.display_lyric()
         self.current_music_state = 1
@@ -362,6 +382,14 @@ class MainFrame(wx.Frame):
                         self.lyrcis_static_text[lyric_index - relative_start_index - 1].Refresh()
                     break
             time.sleep(1)
+
+    def get_music_cover(self, filepath):
+        audio = File(filepath)
+        cover = audio.tags['APIC:'].data
+        write_path = filepath.split('\\')[0] + '\.tmp\cover.png'
+        #filename = self.current_music_name+'.png'
+        with open(write_path, 'wb') as img:
+            img.write(cover)
 
     '''    def download_music(self, evt):
         \'''
