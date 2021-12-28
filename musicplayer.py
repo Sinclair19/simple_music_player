@@ -97,18 +97,13 @@ class MainFrame(wx.Frame):
 
     def draw_navi_panel(self):
         # 导航栏所在的panel
-        self.navi_panel = wx.Panel(self, id=-1, pos=(0, 0), size=(100, self.height - 100))
+        self.navi_panel = wx.Panel(self, id=-1, pos=(0, 0), size=(100, self.height - 200))
+        #self.navi_panel.SetBackgroundColour("yellow")
         # 本地音乐
         local_music_text = wx.StaticText(self.navi_panel, -1, "本地音乐", pos=(20, 20), style=wx.ALIGN_LEFT)
         local_music_text.SetOwnForegroundColour((41, 36, 33))
 
-    def draw_music_list_panel(self):
-        '''
-        绘制音乐列表所在的panel
-        :param draw:
-        :param show:
-        :return:
-        '''
+    '''    def draw_music_list_panel(self):
         # 重新计算本地音乐列表
         self.get_local_music_list()
         # 绘制面板整体
@@ -127,11 +122,35 @@ class MainFrame(wx.Frame):
             music_text.Refresh()  # 这句话不能少
             play_button = wx.BitmapButton(self.music_list_panel, -1, self.play_png, pos=(280, music_index * 40 + 20),
                                           size=(20, 20))
-            play_button.Bind(wx.EVT_LEFT_DOWN, lambda e, index=music_index: self.play_index_music(index))
+            play_button.Bind(wx.EVT_LEFT_DOWN, lambda e, index=music_index: self.play_index_music(index))'''
+
+    def draw_music_list_panel(self):
+        # 重新计算本地音乐列表
+        self.get_local_music_list()
+        # 绘制面板整体
+        if self.music_list_panel is not None:
+            self.music_list_panel.Destroy()
+        self.music_list_panel = wx.Panel(self, id=-1, pos=(100, 0), size=(450, self.height - 150))
+        #self.music_list_panel.SetBackgroundColour("green")
+        # 音乐列表
+        local_music_num = len(self.local_music_name_list)
+        for music_index in range(local_music_num):
+            music_full_name = self.local_music_name_list[music_index].split('.')[0]
+            if len(music_full_name) > MAX_MUSIC_NAME_LEN:
+                music_full_name = music_full_name[0:MAX_MUSIC_NAME_LEN] + "..."
+            music_text_button = wx.Button(self.music_list_panel, -1, music_full_name, pos=(0, music_index * 35 + 10),
+                                          size=(450, 30), style=wx.BU_LEFT)
+
+            music_text_button.SetOwnForegroundColour((41, 36, 33))
+            music_text_button.SetBackgroundColour((248, 248, 255))
+            music_text_button.Bind(wx.EVT_LEFT_DOWN, lambda e, index=music_index: self.play_index_music(index))
+            music_text_button.SetWindowStyleFlag(wx.NO_BORDER)
+            music_text_button.Refresh()
 
     def draw_play_music_panel(self):
         # 播放音乐所在的panel
         self.play_music_panel = wx.Panel(self, id=-1, pos=(0, self.height - 150), size=(self.width, 150))
+        #self.play_music_panel.SetBackgroundColour("blue")
         # 歌的名字
         self.current_music_static_text = wx.StaticText(self.play_music_panel, -1, "请选择歌曲", pos=(210, 0), size=(80, 30), style=wx.ALIGN_LEFT)
         self.current_music_static_text.SetOwnForegroundColour((41, 36, 33))
@@ -182,7 +201,8 @@ class MainFrame(wx.Frame):
         歌词所在的面板的控制
         :return:
         '''
-        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(400, 10), size=(self.width - 400, self.height - 160))
+        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 150))
+        #self.music_lyric_panel.SetBackgroundColour("purple")
 
         # 获取歌词
         lyric_list = self.get_lyrics()
@@ -192,7 +212,7 @@ class MainFrame(wx.Frame):
                 lyric = lyric_list[lyric_index]
             else:
                 lyric = ""
-            lyric_row = wx.StaticText(self.music_lyric_panel, -1, lyric, pos=(250, 30 * lyric_index + 10),
+            lyric_row = wx.StaticText(self.music_lyric_panel, -1, lyric, pos=(100, 30 * lyric_index + 10),
                                   size=(400, -1), style=wx.ALIGN_CENTER)
             lyric_row.SetOwnForegroundColour((41, 36, 33))
             self.lyrcis_static_text.append(lyric_row)
