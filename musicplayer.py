@@ -39,6 +39,8 @@ class MainFrame(wx.Frame):
         self.IsPaused = False  # 是否暂停
         self.current_music_index = 0  # 当前音乐的索引
         self.current_music_name = None
+        self.current_music_path = None
+        self.current_music_length = None
         # 初始化本地歌曲列表
         self.get_local_music_list()
         self.current_music_static_text = None  # 当前播放的音乐的名字
@@ -79,7 +81,8 @@ class MainFrame(wx.Frame):
             icon = wx.Icon('resources/music.png', wx.BITMAP_TYPE_ANY)
             self.SetIcon(icon)        # 以下可以添加各类控件
             pass
-    
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
     '''        # 下载音乐面板
 
         self.down_music_panel = None
@@ -179,10 +182,12 @@ class MainFrame(wx.Frame):
         # 调节音量的按钮
         self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.default_volume*100), 0, 100, pos=(490, 30),
                                        size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
+
         #self.volume_slider.SetToolTipString(u'音量:%d%%' %self.volume_slider.GetValue())
-        play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1))
-        #play_slider_song_len = wx.StaticText(self.navi_panel, -1, pygame.mixer.Sound.get_length(), pos=(1250,55), size=(20,30))
-        play_slider.SetToolTip(u'播放进度')
+        self.play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1))
+
+        self.play_slider.SetToolTip(u'播放进度')
+
         # 上述按钮的监听器
         last_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_last_music)
         self.play_stop_button.Bind(wx.EVT_LEFT_DOWN, self.play_stop_music)
@@ -255,9 +260,10 @@ class MainFrame(wx.Frame):
         '''
         current_music_path = self.get_path_by_name(self.local_music_name_list[self.current_music_index])
         self.music.load(current_music_path)
+        self.current_music_path = current_music_path
         # step1：播放音乐
         self.music.play(loops=1, start=0.0)
-        print(pygame.mixer.Sound.get_length(current_music_path))
+        self.current_music_length = pygame.mixer.Sound(self.current_music_path).get_length()
         # step2：重写歌词面板
         self.redraw_music_lyric_panel()
         self.current_music_name = current_music_path.split('\\')[-1]
@@ -266,6 +272,7 @@ class MainFrame(wx.Frame):
             self.redraw_music_cover_panel(current_music_path)
         else:
             self.draw_music_cover_panel()
+        self.update_total_music_time()
         # step3：开启新线程，追踪歌词
         self.display_lyric()
         self.current_music_state = 1
@@ -276,6 +283,9 @@ class MainFrame(wx.Frame):
         if len(current_music_name) > MAX_MUSIC_NAME_LEN:
             current_music_name = current_music_name[0:MAX_MUSIC_NAME_LEN] + "..."
         self.current_music_static_text.SetLabelText(namelist[0])
+
+        self.play_slider.SetRange(0, int(self.current_music_length))
+        self.play_slider.Bind(wx.EVT_SLIDER, self.timer)
 
     def play_index_music(self, music_index):
         '''
@@ -386,7 +396,7 @@ class MainFrame(wx.Frame):
                 content_list[i] = ']'.join(templist)
             else:
                 continue
-        print(content_list)
+        #print(content_list)
         lyrics_list = []
         for content in content_list:
             if re.match(LYRIC_ROW_REG, content):
@@ -432,6 +442,34 @@ class MainFrame(wx.Frame):
         with open(write_path, 'wb') as img:
             img.write(cover)
 
+    def update_total_music_time(self):
+        showlength = time.strftime("%M:%S", time.gmtime(int(self.current_music_length)))
+        play_slider_song_len = wx.StaticText(self, -1, showlength, pos=(1200, 628), size=(35, 30))
+        play_slider_song_len.SetOwnForegroundColour((41, 36, 33))
+        play_slider_song_len.Refresh()
+
+    def timer(self,evt):
+        obj = evt.GetEventObject()
+        val = obj.GetValue()
+        offset = self.play_slider.GetValue()
+        print(offset)
+       # self.music.load(self.current_music_path)
+        b = self.music.get_pos()
+        self.music.stop()
+        self.music.play(loops=1,start=val)
+    '''    def timer(self):
+        global flag
+        if ischanging:
+            flag = var.get() - player.get_pos() / 1000  # 毫秒转秒
+            pygame.mixer.music.set_pos(var.get())
+        else:
+            var.set(pygame.mixer.music.get_pos() / 1000 + flag)  # 毫秒转秒后加上 flag'''
+
+    def OnClose(self, evt):
+        dlg = wx.MessageDialog(None, u'确定要关闭本窗口？', u'操作提示', wx.YES_NO | wx.ICON_QUESTION)
+        if(dlg.ShowModal() == wx.ID_YES):
+            self.Destroy()
+            self.music.stop()
 
 if __name__ == "__main__":
     app = wx.App()
