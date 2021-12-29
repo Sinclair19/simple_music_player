@@ -6,13 +6,14 @@ import time
 from threading import Thread
 import math
 from mutagen import File
+import sys
+import win32api
 #from wx.media import MediaCtrl
 
 APP_TITLE = u'音乐播放器'
 MAX_LYRIC_ROW = 18
 LYRIC_ROW_REG = '\[[0-9]{2}:[0-9]{2}.[0-9]{2,}\]'
 MAX_MUSIC_NAME_LEN = 70  # 歌名展示的时候最长字符限制
-
 
 class MainFrame(wx.Frame):
     '''程序主窗口类，继承自wx.Frame'''
@@ -70,7 +71,15 @@ class MainFrame(wx.Frame):
         pygame.mixer.init()
         self.music = pygame.mixer.music
         self.SONG_FINISHED = pygame.USEREVENT + 1
-
+        
+        if hasattr(sys, "frozen") and getattr(sys, "frozen") == "windows_exe":
+            exeName = win32api.GetModuleFileName(win32api.GetModuleHandle(None))
+            icon = wx.Icon(exeName, wx.BITMAP_TYPE_ANY)
+        else : 
+            icon = wx.Icon('resources/music.png', wx.BITMAP_TYPE_ANY)
+            self.SetIcon(icon)        # 以下可以添加各类控件
+            pass
+    
     '''        # 下载音乐面板
 
         self.down_music_panel = None
