@@ -22,7 +22,7 @@ class MainFrame(wx.Frame):
         # 播放器的整体属性
         self.width = 1280
         self.height = 720
-        self.volume = 0.5
+        self.default_volume = 0.5
         #self.lastvolume = self.volume
 
         self.local_music_folder = "music_folder"
@@ -100,7 +100,7 @@ class MainFrame(wx.Frame):
         self.navi_panel = wx.Panel(self, id=-1, pos=(0, 0), size=(100, self.height - 200))
         #self.navi_panel.SetBackgroundColour("yellow")
         # 本地音乐
-        local_music_text = wx.StaticText(self.navi_panel, -1, "本地音乐", pos=(20, 20), style=wx.ALIGN_LEFT)
+        local_music_text = wx.StaticText(self.navi_panel, -1, "本地音乐", pos=(20, 10), style=wx.ALIGN_LEFT)
         local_music_text.SetOwnForegroundColour((41, 36, 33))
 
     '''    def draw_music_list_panel(self):
@@ -152,7 +152,8 @@ class MainFrame(wx.Frame):
         self.play_music_panel = wx.Panel(self, id=-1, pos=(0, self.height - 150), size=(self.width, 150))
         #self.play_music_panel.SetBackgroundColour("blue")
         # 歌的名字
-        self.current_music_static_text = wx.StaticText(self.play_music_panel, -1, "请选择歌曲", pos=(210, 0), size=(80, 30), style=wx.ALIGN_LEFT)
+        self.current_music_static_text = wx.StaticText(self.play_music_panel, -1, "请选择歌曲",
+                                                       pos=(210, 0), size=(80, 30), style=wx.ALIGN_LEFT)
         self.current_music_static_text.SetOwnForegroundColour((41, 36, 33))
 
         self.play_stop_button = wx.BitmapButton(self.play_music_panel, -1, self.play_png,  pos=(320, 45), size=(50, 50))
@@ -167,9 +168,11 @@ class MainFrame(wx.Frame):
         next_music_button.SetWindowStyleFlag(wx.NO_BORDER)
         next_music_button.SetToolTip(u'下一首')
         # 调节音量的按钮
-        self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.volume*100), 0, 100, pos=(490, 30), size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
+        self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.default_volume*100), 0, 100, pos=(490, 30),
+                                       size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
         #self.volume_slider.SetToolTipString(u'音量:%d%%' %self.volume_slider.GetValue())
         play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1))
+        #play_slider_song_len = wx.StaticText(self.navi_panel, -1, pygame.mixer.Sound.get_length(), pos=(1250,55), size=(20,30))
         play_slider.SetToolTip(u'播放进度')
         # 上述按钮的监听器
         last_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_last_music)
@@ -245,6 +248,7 @@ class MainFrame(wx.Frame):
         self.music.load(current_music_path)
         # step1：播放音乐
         self.music.play(loops=1, start=0.0)
+        print(pygame.mixer.Sound.get_length(current_music_path))
         # step2：重写歌词面板
         self.redraw_music_lyric_panel()
         self.current_music_name = current_music_path.split('\\')[-1]
@@ -373,6 +377,7 @@ class MainFrame(wx.Frame):
                 content_list[i] = ']'.join(templist)
             else:
                 continue
+        print(content_list)
         lyrics_list = []
         for content in content_list:
             if re.match(LYRIC_ROW_REG, content):
