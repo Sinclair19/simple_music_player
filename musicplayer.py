@@ -182,8 +182,7 @@ class MainFrame(wx.Frame):
         # 调节音量的按钮
         self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.default_volume*100), 0, 100, pos=(490, 30),
                                        size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
-
-        #self.volume_slider.SetToolTipString(u'音量:%d%%' %self.volume_slider.GetValue())
+        self.volume_slider.SetToolTip(u'音量:%d%%' % self.default_volume)
         self.play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1))
 
         self.play_slider.SetToolTip(u'播放进度')
@@ -194,7 +193,6 @@ class MainFrame(wx.Frame):
         next_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_next_music)
         self.volume_slider.Bind(wx.EVT_SLIDER, self.change_volume)
         self.volume_slider.Bind(wx.EVT_SCROLL, self.change_volume)
-        #self.volume_slider.Bind(wx.EVT_SCROLL, self.ChangeVolume)
 
     def redraw_music_lyric_panel(self, start_index=0):
         # 隐藏之前的歌词的每一行
@@ -334,20 +332,13 @@ class MainFrame(wx.Frame):
         :return:
         '''
         #self.setVolumeAndTip()
-        #value = self.volume_slider.GetValue()
+        value = self.volume_slider.GetValue()
         obj = evt.GetEventObject()
         val = obj.GetValue()
         self.volume = float(val / 100)
         self.music.set_volume(self.volume)
+        self.volume_slider.SetToolTip(u'音量:%d%%' % value)
 
-
-    '''    def setVolumeAndTip(self):
-        value = self.volume_slider.GetValue()
-        self.volume = value/100.0
-        if self.volume != 0:
-            self.lastvolume = self.volume
-        self.mc.SetVolume(self.volume)
-        self.volume_slider.SetToolTipString(u'音量:%d%%' %value)'''
 
     def get_lyrics(self):
         '''
