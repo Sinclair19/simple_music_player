@@ -71,11 +71,13 @@ class MainFrame(wx.Frame):
         self.music_cover_panel = None
         self.draw_music_cover_panel()
 
+        self.createTimer()
+        self.settime = 0
+
         pygame.mixer.init()
         self.music = pygame.mixer.music
         self.SONG_FINISHED = pygame.USEREVENT + 1
 
-        self.createTimer()
         
         if hasattr(sys, "frozen") and getattr(sys, "frozen") == "windows_exe":
             exeName = win32api.GetModuleFileName(win32api.GetModuleHandle(None))
@@ -292,7 +294,9 @@ class MainFrame(wx.Frame):
             current_music_name = current_music_name[0:MAX_MUSIC_NAME_LEN] + "..."
         self.current_music_static_text.SetLabelText(namelist[0])
 
+
         self.play_slider.SetRange(0, int(self.current_music_length))
+        self.play_slider.SetValue(0)
         self.play_slider.Bind(wx.EVT_SLIDER, self.timer)
 
         self.text_timer.Start(1000)
@@ -464,13 +468,15 @@ class MainFrame(wx.Frame):
         play_slider_song_len.Refresh()
 
     def updatemusicslider(self,evt):
-        offest = int(self.music.get_pos()/1000)
+        offest = int(self.music.get_pos()/1000)+self.settime
+        #self.settime = 0
         #print(time)
         print(time.strftime("%M:%S", time.gmtime(offest)))
         self.play_slider.SetValue(offest)
 
     def onUpdateText(self,evt):
-        offset = int(self.music.get_pos()/1000)
+        #offset = int(self.music.get_pos()/1000)
+        offset = self.play_slider.GetValue()
         #print('1')
         progress_text = time.strftime("%M:%S", time.gmtime(offset))
         print(progress_text)
@@ -487,6 +493,7 @@ class MainFrame(wx.Frame):
         obj = evt.GetEventObject()
         val = obj.GetValue()
         offset = self.play_slider.GetValue()
+        self.settime = val
         #print(offset)
         #self.music.stop()
         #self.music.play(loops=1, start=val)
