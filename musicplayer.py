@@ -75,7 +75,7 @@ class MainFrame(wx.Frame):
         self.music = pygame.mixer.music
         self.SONG_FINISHED = pygame.USEREVENT + 1
 
-        #self.createTimer()
+        self.createTimer()
         
         if hasattr(sys, "frozen") and getattr(sys, "frozen") == "windows_exe":
             exeName = win32api.GetModuleFileName(win32api.GetModuleHandle(None))
@@ -186,9 +186,11 @@ class MainFrame(wx.Frame):
         self.volume_slider = wx.Slider(self.play_music_panel, -1, int(self.default_volume*100), 0, 100, pos=(490, 30),
                                        size=(-1, 80), style=wx.SL_VERTICAL|wx.SL_INVERSE)
         self.volume_slider.SetToolTip(u'音量:%d%%' % (self.default_volume*100))
-        self.play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1))
+        self.play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1),style=wx.SL_HORIZONTAL)
 
         self.play_slider.SetToolTip(u'播放进度')
+
+        self.progress = wx.StaticText(self, label='00:00', pos=(1165, 628))
 
         # 上述按钮的监听器
         last_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_last_music)
@@ -268,10 +270,12 @@ class MainFrame(wx.Frame):
         # step2：重写歌词面板
         self.redraw_music_lyric_panel()
         self.current_music_name = current_music_path.split('\\')[-1]
+
         if self.current_music_name.split('.')[-1] == 'mp3':
             self.get_mp3_cover(current_music_path)
             self.redraw_music_cover_panel(current_music_path)
         elif self.current_music_name.split('.')[-1] == 'flac':
+            print(current_music_path)
             self.get_flac_cover(current_music_path)
             self.redraw_music_cover_panel(current_music_path)
         else:
@@ -290,7 +294,10 @@ class MainFrame(wx.Frame):
 
         self.play_slider.SetRange(0, int(self.current_music_length))
         self.play_slider.Bind(wx.EVT_SLIDER, self.timer)
-        #self.createTimer()
+
+        self.text_timer.Start(1000)
+        #self.play_slider.Bind(wx.EVT_SCROLL, self.timer)
+        #self.createTimer
 
     def play_index_music(self, music_index):
         '''
@@ -304,12 +311,12 @@ class MainFrame(wx.Frame):
     def play_stop_music(self, evt):
         if self.music.get_busy() or self.IsPaused:  # 有音乐在播放，需要暂停，或者音乐暂停中
             if self.current_music_state == 1:
-                print("有音乐在播放，需要暂停")
+                #print("有音乐在播放，需要暂停")
                 self.music.pause()
                 self.current_music_state = 0
                 self.play_stop_button.SetBitmap(self.play_png)
                 self.IsPaused = True
-                print(self.music.get_busy())
+                #print(self.music.get_busy())
             else:  # 恢复暂停的音乐
                 self.music.unpause()
                 self.current_music_state = 1
@@ -416,7 +423,7 @@ class MainFrame(wx.Frame):
             current_time = float(self.music.get_pos() / 1000)
             for lyric_index, lyrics_time_dict in enumerate(lyrics_time_dict_list):
                 lyric_time = list(lyrics_time_dict.keys())[0]
-                if math.fabs(lyric_time - current_time) < 0.8:
+                if math.fabs(lyric_time - current_time) < 0.7:
                     # 当歌词已经超过底部了，则刷新歌词面板，展示第二页的歌词
                     if lyric_index > 0 and lyric_index % MAX_LYRIC_ROW == 0:
                         relative_start_index = lyric_index
@@ -452,29 +459,40 @@ class MainFrame(wx.Frame):
 
     def update_total_music_time(self):
         showlength = time.strftime("%M:%S", time.gmtime(int(self.current_music_length)))
-        play_slider_song_len = wx.StaticText(self, -1, showlength, pos=(1200, 628), size=(35, 30))
+        play_slider_song_len = wx.StaticText(self, -1, f"/ {showlength}", pos=(1200, 628))
         play_slider_song_len.SetOwnForegroundColour((41, 36, 33))
         play_slider_song_len.Refresh()
 
-    def updatemusicslider(self):
-        time = self.music.get_pos()
-        self.play_slider.SetValue(time)
+    def updatemusicslider(self,evt):
+        offest = int(self.music.get_pos()/1000)
+        #print(time)
+        print(time.strftime("%M:%S", time.gmtime(offest)))
+        self.play_slider.SetValue(offest)
 
-    def createTimer(self,evt):
+    def onUpdateText(self,evt):
+        offset = int(self.music.get_pos()/1000)
+        #print('1')
+        progress_text = time.strftime("%M:%S", time.gmtime(offset))
+        print(progress_text)
+        self.progress.SetLabel(progress_text)
+
+    def createTimer(self):
         self.slider_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.updatemusicslider,self.slider_timer)
         self.slider_timer.Start(100)
-        #self.text_timer = wx.Timer(self)
-        #self.Bind(wx.EVT_TIMER, self.onUpdateText,self.text_timer)
+        self.text_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.onUpdateText,self.text_timer)
 
     def timer(self,evt):
         obj = evt.GetEventObject()
         val = obj.GetValue()
         offset = self.play_slider.GetValue()
         #print(offset)
-        self.music.stop()
-        self.music.play(loops=1, start=val)
-
+        #self.music.stop()
+        #self.music.play(loops=1, start=val)
+        self.music.set_pos(val)
+        evt.Skip()
+        #self.music.set_pos(offset)
 
     '''    def timer(self):
         global flag
