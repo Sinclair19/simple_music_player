@@ -297,6 +297,7 @@ class MainFrame(wx.Frame):
 
         self.play_slider.SetRange(0, int(self.current_music_length))
         self.play_slider.SetValue(0)
+        self.settime = 0
         self.play_slider.Bind(wx.EVT_SLIDER, self.timer)
 
         self.text_timer.Start(1000)
