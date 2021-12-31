@@ -24,7 +24,7 @@ class MainFrame(wx.Frame):
         # 播放器的整体属性
         self.width = 1280
         self.height = 720
-        self.default_volume = 0.5
+        self.default_volume = 0.2
         #self.lastvolume = self.volume
 
         self.local_music_folder = "music_folder"
@@ -73,7 +73,10 @@ class MainFrame(wx.Frame):
 
         self.createTimer()
         self.settime = 0
+        self.after_id = None
+        self.timeleeplist = [0]
 
+        pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.mixer.init()
         self.music = pygame.mixer.music
         self.SONG_FINISHED = pygame.USEREVENT + 1
@@ -277,7 +280,7 @@ class MainFrame(wx.Frame):
             self.get_mp3_cover(current_music_path)
             self.redraw_music_cover_panel(current_music_path)
         elif self.current_music_name.split('.')[-1] == 'flac':
-            print(current_music_path)
+            #print(current_music_path)
             self.get_flac_cover(current_music_path)
             self.redraw_music_cover_panel(current_music_path)
         else:
@@ -294,7 +297,7 @@ class MainFrame(wx.Frame):
             current_music_name = current_music_name[0:MAX_MUSIC_NAME_LEN] + "..."
         self.current_music_static_text.SetLabelText(namelist[0])
 
-
+        self.timeleeplist=[0]
         self.play_slider.SetRange(0, int(self.current_music_length))
         self.play_slider.SetValue(0)
         self.settime = 0
@@ -470,17 +473,21 @@ class MainFrame(wx.Frame):
 
     def updatemusicslider(self,evt):
         offest = int(self.music.get_pos()/1000)+self.settime
+        #print(int(self.music.get_pos()/1000))
+        #print(self.settime)
         #self.settime = 0
+        #print(self.settime)
         #print(time)
-        print(time.strftime("%M:%S", time.gmtime(offest)))
+        #print(time.strftime("%M:%S", time.gmtime(offest)))
         self.play_slider.SetValue(offest)
+        #self.settime = 0
 
     def onUpdateText(self,evt):
         #offset = int(self.music.get_pos()/1000)
         offset = self.play_slider.GetValue()
         #print('1')
         progress_text = time.strftime("%M:%S", time.gmtime(offset))
-        print(progress_text)
+        #print(progress_text)
         self.progress.SetLabel(progress_text)
 
     def createTimer(self):
@@ -490,16 +497,37 @@ class MainFrame(wx.Frame):
         self.text_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.onUpdateText,self.text_timer)
 
-    def timer(self,evt):
+    def storgetimeleep(self,evt):
         obj = evt.GetEventObject()
         val = obj.GetValue()
-        offset = self.play_slider.GetValue()
+        self.timeleeplist.append(val)
+
+    def timer(self,evt):
+        #if self.after_id is not None:
+        #    self.after_cancel(self.after_id)
+        #    self.after_id = None
+        obj = evt.GetEventObject()
+        val = obj.GetValue()
+        #offset = self.play_slider.GetValue()
+        self.settime = 0
         self.settime = val
+        self.timeleeplist.append(val)
+        if len(self.timeleeplist) > 3:
+            self.timeleeplist = self.timeleeplist[-3:]
         #print(offset)
         #self.music.stop()
         #self.music.play(loops=1, start=val)
-        self.music.set_pos(val)
-        evt.Skip()
+        print(self.timeleeplist)
+        #time.sleep(0.1)
+        if abs(self.timeleeplist[-1]-self.timeleeplist[-2])>=2:
+            #pygame.mixer.music.rewind()
+            #self.music.set_pos(self.timeleeplist[-1])
+            self.music.stop()
+            self.music.play(loops=1, start=(self.timeleeplist[-1]))
+            #self.timeleeplist = [0]
+
+        #self.after_id = self.after(1000, self.timer)
+        #evt.Skip()
         #self.music.set_pos(offset)
 
     '''    def timer(self):
@@ -513,8 +541,9 @@ class MainFrame(wx.Frame):
     def OnClose(self, evt):
         dlg = wx.MessageDialog(None, u'确定要关闭本窗口？', u'操作提示', wx.YES_NO | wx.ICON_QUESTION)
         if(dlg.ShowModal() == wx.ID_YES):
-            self.Destroy()
             self.music.stop()
+            self.Destroy()
+
 
 if __name__ == "__main__":
     app = wx.App()
