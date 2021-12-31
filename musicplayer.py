@@ -193,7 +193,7 @@ class MainFrame(wx.Frame):
         self.volume_slider.SetToolTip(u'音量:%d%%' % (self.default_volume*100))
         self.play_slider = wx.Slider(self.play_music_panel, -1, pos=(550, 55), size=(600, -1),style=wx.SL_HORIZONTAL)
 
-        self.play_slider.SetToolTip(u'播放进度')
+        self.play_slider.SetToolTip('当前播放进度 00:00')
 
         self.progress = wx.StaticText(self, label='00:00', pos=(1165, 628))
 
@@ -427,10 +427,12 @@ class MainFrame(wx.Frame):
         '''
         lyrics_time_dict_list = self.parse_lyrics()
         relative_start_index = 0  # 相对起始歌词索引
+        print(lyrics_time_dict_list)
         while self.music.get_busy():  # 播放中
-            current_time = float(self.music.get_pos() / 1000)
+            current_time = self.play_slider.GetValue()
             for lyric_index, lyrics_time_dict in enumerate(lyrics_time_dict_list):
                 lyric_time = list(lyrics_time_dict.keys())[0]
+                #print(lyrics_time_dict)
                 if math.fabs(lyric_time - current_time) < 0.7:
                     # 当歌词已经超过底部了，则刷新歌词面板，展示第二页的歌词
                     if lyric_index > 0 and lyric_index % MAX_LYRIC_ROW == 0:
@@ -489,6 +491,7 @@ class MainFrame(wx.Frame):
         progress_text = time.strftime("%M:%S", time.gmtime(offset))
         #print(progress_text)
         self.progress.SetLabel(progress_text)
+        self.play_slider.SetToolTip(f'当前播放进度 {progress_text}')
 
     def createTimer(self):
         self.slider_timer = wx.Timer(self)
@@ -509,7 +512,7 @@ class MainFrame(wx.Frame):
         obj = evt.GetEventObject()
         val = obj.GetValue()
         #offset = self.play_slider.GetValue()
-        self.settime = 0
+        #self.settime = 0
         self.settime = val
         self.timeleeplist.append(val)
         if len(self.timeleeplist) > 3:
@@ -517,8 +520,8 @@ class MainFrame(wx.Frame):
         #print(offset)
         #self.music.stop()
         #self.music.play(loops=1, start=val)
-        print(self.timeleeplist)
-        #time.sleep(0.1)
+        #print(self.timeleeplist)
+        time.sleep(0.05)
         if abs(self.timeleeplist[-1]-self.timeleeplist[-2])>=2:
             #pygame.mixer.music.rewind()
             #self.music.set_pos(self.timeleeplist[-1])
