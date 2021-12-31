@@ -12,7 +12,7 @@ import win32api
 #from wx.media import MediaCtrl
 
 APP_TITLE = u'音乐播放器'
-MAX_LYRIC_ROW = 18
+MAX_LYRIC_ROW = 19
 LYRIC_ROW_REG = '\[[0-9]{2}:[0-9]{2}.[0-9]{2,}\]'
 MAX_MUSIC_NAME_LEN = 70  # 歌名展示的时候最长字符限制
 
@@ -75,6 +75,9 @@ class MainFrame(wx.Frame):
         self.settime = 0
         self.after_id = None
         self.timeleeplist = [0]
+
+        self.current_lyrics_word_list = []
+        self.current_lyrics_time_list = []
 
         pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.mixer.init()
@@ -269,11 +272,13 @@ class MainFrame(wx.Frame):
         current_music_path = self.get_path_by_name(self.local_music_name_list[self.current_music_index])
         self.music.load(current_music_path)
         self.current_music_path = current_music_path
+
         # step1：播放音乐
         self.music.play(loops=1, start=0.0)
         self.current_music_length = pygame.mixer.Sound(self.current_music_path).get_length()
+
         # step2：重写歌词面板
-        self.redraw_music_lyric_panel()
+        #self.redraw_music_lyric_panel()
         self.current_music_name = current_music_path.split('\\')[-1]
 
         if self.current_music_name.split('.')[-1] == 'mp3':
@@ -287,7 +292,16 @@ class MainFrame(wx.Frame):
             self.draw_music_cover_panel()
         self.update_total_music_time()
         # step3：开启新线程，追踪歌词
-        self.display_lyric()
+        #self.display_lyric()
+        if self.get_lyric_path() is None or not os.path.exists(self.get_lyric_path()):
+            self.current_lyrics_word_list = []
+            self.current_lyrics_time_list = []
+            pass
+        else:
+            self.get_lyrics_word()
+            self.get_lyrics_time()
+
+
         self.current_music_state = 1
         self.play_stop_button.SetBitmap(self.stop_png)
         # 更改当前播放的音乐的名字
@@ -361,6 +375,89 @@ class MainFrame(wx.Frame):
         self.music.set_volume(self.volume)
         self.volume_slider.SetToolTip(u'音量:%d%%' % value)
 
+    def get_lyrics_word(self):
+        current_lyric_path = self.get_lyric_path()
+        if current_lyric_path is None or not os.path.exists(current_lyric_path):
+            return None
+
+        with open(current_lyric_path, 'r', encoding="utf-8") as file_pointer:
+            lyrics = file_pointer.readlines()
+
+        self.current_lyrics_word_list = []
+        for lyric in lyrics:
+            if re.match(LYRIC_ROW_REG, lyric):
+                index_of_right_blank = lyric.index(']')
+                lyric_clause = lyric.replace('\n', '')[index_of_right_blank + 1:]
+                self.current_lyrics_word_list.append(lyric_clause.strip())
+
+    def get_lyrics_time(self):
+        current_lyric_path = self.get_lyric_path()
+        self.current_lyrics_time_list = []
+
+        with open(current_lyric_path, 'r', encoding="utf-8") as file_pointer:
+            lyrics = file_pointer.readlines()
+
+        for i in range(len(lyrics)):
+            lyrics[i] = lyrics[i].replace('\n', '')
+            if lyrics[i].index(']') == 6:
+                templist = lyrics[i].split(']')
+                templist[0] = templist[0][:6] + '.00'
+                templist[1] = templist[1].strip()
+                lyrics[i] = ']'.join(templist)
+            elif lyrics[i].index(']') == 10:
+                templist = lyrics[i].split(']')
+                templist[0] = templist[0][:9]
+                templist[1] = templist[1].strip()
+                lyrics[i] = ']'.join(templist)
+            else:
+                continue
+        for lyric in lyrics:
+            if re.match(LYRIC_ROW_REG, lyric):
+                start_time = float(lyric[1:3]) * 60 + float(lyric[4:6]) + float(lyric[7:9]) / 100
+                self.current_lyrics_time_list.append(start_time)
+
+    def sync_lyrics(self):
+        current_time = self.play_slider.GetValue()
+        timelist = self.current_lyrics_time_list
+        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 150))
+        for point in range(len(timelist)):
+            if abs(current_time-timelist[point])<=1:
+                print(1)
+                medium_row = wx.StaticText(self.music_lyric_panel, -1, self.current_lyrics_word_list[point], pos=(100, 280),
+                                          size=(400, -1), style=wx.ALIGN_CENTER)
+                medium_row.SetOwnForegroundColour((61, 89, 171))
+                self.set_lyrics_upside(point)
+                self.set_lyrics_downside(point)
+                self.music_lyric_panel.Refresh()
+
+            '''            if abs(timelist[point-1]-timelist[point+1])>=2:
+                medium_row = wx.StaticText(self.music_lyric_panel, -1, f'* * * * * *', pos=(100, 280),
+                                          size=(400, -1), style=wx.ALIGN_CENTER)
+                medium_row.SetOwnForegroundColour((61, 89, 171))
+                medium_row.Refresh()'''
+    def set_lyrics_upside(self,row):
+        if row-9 <=0:
+            start = 0
+        else:
+            start = row-9
+        for i in range(start,row):
+            lyric_row = wx.StaticText(self.music_lyric_panel, -1, self.current_lyrics_word_list[i], pos=(100, 280-(30 * (i+1) + 10)),
+                                  size=(400, -1), style=wx.ALIGN_CENTER)
+            lyric_row.SetOwnForegroundColour((41, 36, 33))
+        #lyric_row.Refresh()
+
+    def set_lyrics_downside(self,row):
+        if row+9 >= len(self.current_lyrics_word_list):
+            end = -1
+        else:
+            end = row+10
+        for i in range(row+1,end):
+            lyric_row = wx.StaticText(self.music_lyric_panel, -1, self.current_lyrics_word_list[i], pos=(100, 280+(30 * (i-1) + 10)),
+                                  size=(400, -1), style=wx.ALIGN_CENTER)
+            lyric_row.SetOwnForegroundColour((41, 36, 33))
+        #lyric_row.Refresh()
+
+
 
     def get_lyrics(self):
         '''
@@ -383,8 +480,9 @@ class MainFrame(wx.Frame):
         return lyrics_list
 
     def display_lyric(self):
-        lyric_refersh_thread = Thread(target=self.refersh_lyrics)
-        lyric_refersh_thread.start()
+        #lyric_refersh_thread = Thread(target=self.refersh_lyrics)
+        #lyric_refersh_thread.start()
+        print(1)
 
     def parse_lyrics(self):
         current_lyric_path = self.get_lyric_path()
@@ -427,7 +525,7 @@ class MainFrame(wx.Frame):
         '''
         lyrics_time_dict_list = self.parse_lyrics()
         relative_start_index = 0  # 相对起始歌词索引
-        print(lyrics_time_dict_list)
+        #print(lyrics_time_dict_list)
         while self.music.get_busy():  # 播放中
             current_time = self.play_slider.GetValue()
             for lyric_index, lyrics_time_dict in enumerate(lyrics_time_dict_list):
@@ -493,12 +591,19 @@ class MainFrame(wx.Frame):
         self.progress.SetLabel(progress_text)
         self.play_slider.SetToolTip(f'当前播放进度 {progress_text}')
 
+        lyric_sync_thread = Thread(target=self.sync_lyrics())
+        lyric_sync_thread.start()
+        #self.sync_lyrics()
+
     def createTimer(self):
         self.slider_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.updatemusicslider,self.slider_timer)
         self.slider_timer.Start(100)
         self.text_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.onUpdateText,self.text_timer)
+        self.sync_lyrics_timer = wx.Timer(self)
+        #self.Bind(wx.EVT_TIMER,self.sync_lyrics,self.sync_lyrics_timer)
+        #self.sync_lyrics_timer.Start(1000)
 
     def storgetimeleep(self,evt):
         obj = evt.GetEventObject()
@@ -512,6 +617,7 @@ class MainFrame(wx.Frame):
         obj = evt.GetEventObject()
         val = obj.GetValue()
         #offset = self.play_slider.GetValue()
+        #print(offset)
         #self.settime = 0
         self.settime = val
         self.timeleeplist.append(val)
