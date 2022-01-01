@@ -1,9 +1,12 @@
+import threading
+
 import wx
 import pygame
 import os
 import re
 import time
 from threading import Thread
+import threading
 import math
 from mutagen import File
 from mutagen.flac import FLAC, Picture
@@ -66,7 +69,7 @@ class MainFrame(wx.Frame):
 
         # 歌词部分所在的panel
         self.music_lyric_panel = None
-        self.draw_music_lyric_panel()
+        #self.draw_music_lyric_panel()
 
         self.music_cover_panel = None
         self.draw_music_cover_panel()
@@ -212,7 +215,7 @@ class MainFrame(wx.Frame):
         for x in self.lyrcis_static_text:
             x.SetLabelText("")
             x.Refresh()
-
+        print("test1")
         # 获取歌词
         lyric_list = self.get_lyrics()
         # 展示歌词
@@ -234,6 +237,7 @@ class MainFrame(wx.Frame):
 
         # 获取歌词
         lyric_list = self.get_lyrics()
+        print('test2')
         # 展示歌词
         for lyric_index in range(MAX_LYRIC_ROW):
             if lyric_index < len(lyric_list):
@@ -293,6 +297,7 @@ class MainFrame(wx.Frame):
         self.update_total_music_time()
         # step3：开启新线程，追踪歌词
         #self.display_lyric()
+
         if self.get_lyric_path() is None or not os.path.exists(self.get_lyric_path()):
             self.current_lyrics_word_list = []
             self.current_lyrics_time_list = []
@@ -300,7 +305,7 @@ class MainFrame(wx.Frame):
         else:
             self.get_lyrics_word()
             self.get_lyrics_time()
-
+            #self.thread_sync_lyrics()
 
         self.current_music_state = 1
         self.play_stop_button.SetBitmap(self.stop_png)
@@ -316,7 +321,6 @@ class MainFrame(wx.Frame):
         self.play_slider.SetValue(0)
         self.settime = 0
         self.play_slider.Bind(wx.EVT_SLIDER, self.timer)
-
         self.text_timer.Start(1000)
         #self.play_slider.Bind(wx.EVT_SCROLL, self.timer)
         #self.createTimer
@@ -416,25 +420,37 @@ class MainFrame(wx.Frame):
                 start_time = float(lyric[1:3]) * 60 + float(lyric[4:6]) + float(lyric[7:9]) / 100
                 self.current_lyrics_time_list.append(start_time)
 
-    def sync_lyrics(self):
+    def thread_sync_lyrics(self):
+        #while self.music.get_busy():
+        lyric_sync_thread = Thread(target=self.sync_lyrics)
+        lyric_sync_thread.start()
+
+
+    def sync_lyrics(self,evt):
         current_time = self.play_slider.GetValue()
         timelist = self.current_lyrics_time_list
-        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 150))
+        #self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 150))
         for point in range(len(timelist)):
             if abs(current_time-timelist[point])<=1:
-                print(1)
-                medium_row = wx.StaticText(self.music_lyric_panel, -1, self.current_lyrics_word_list[point], pos=(100, 280),
-                                          size=(400, -1), style=wx.ALIGN_CENTER)
-                medium_row.SetOwnForegroundColour((61, 89, 171))
-                self.set_lyrics_upside(point)
-                self.set_lyrics_downside(point)
-                self.music_lyric_panel.Refresh()
-
+                #print(1)
+                #self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 150))
+                #medium_row = wx.StaticText(self.music_lyric_panel, -1, self.current_lyrics_word_list[point], pos=(100, 280),
+                #                          size=(400, -1), style=wx.ALIGN_CENTER)
+                #medium_row.SetOwnForegroundColour((61, 89, 171))
+                self.medium_row.SetLabel(self.current_lyrics_word_list[point])
+                #self.set_lyrics_upside(point)
+                #self.set_lyrics_downside(point)
+                #self.music_lyric_panel.Refresh()
+                #time.sleep(0.5)
+            else:
+                pass
             '''            if abs(timelist[point-1]-timelist[point+1])>=2:
                 medium_row = wx.StaticText(self.music_lyric_panel, -1, f'* * * * * *', pos=(100, 280),
                                           size=(400, -1), style=wx.ALIGN_CENTER)
                 medium_row.SetOwnForegroundColour((61, 89, 171))
                 medium_row.Refresh()'''
+        #time.sleep(0.5)
+
     def set_lyrics_upside(self,row):
         if row-9 <=0:
             start = 0
@@ -467,6 +483,7 @@ class MainFrame(wx.Frame):
         '''
         current_lyric_path = self.get_lyric_path()
         if current_lyric_path is None or not os.path.exists(current_lyric_path):
+            print('test3')
             return ["暂无歌词"]
         with open(current_lyric_path, 'r', encoding="utf-8") as file_pointer:
             content_list = file_pointer.readlines()
@@ -591,8 +608,8 @@ class MainFrame(wx.Frame):
         self.progress.SetLabel(progress_text)
         self.play_slider.SetToolTip(f'当前播放进度 {progress_text}')
 
-        lyric_sync_thread = Thread(target=self.sync_lyrics())
-        lyric_sync_thread.start()
+        #lyric_sync_thread = Thread(target=self.sync_lyrics())
+        #lyric_sync_thread.start()
         #self.sync_lyrics()
 
     def createTimer(self):
@@ -602,8 +619,12 @@ class MainFrame(wx.Frame):
         self.text_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.onUpdateText,self.text_timer)
         self.sync_lyrics_timer = wx.Timer(self)
-        #self.Bind(wx.EVT_TIMER,self.sync_lyrics,self.sync_lyrics_timer)
-        #self.sync_lyrics_timer.Start(1000)
+        self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 150))
+        self.medium_row = wx.StaticText(self.music_lyric_panel, -1, label='', pos=(100, 280),
+                                   size=(400, -1), style=wx.ALIGN_CENTER)
+        self.medium_row.SetOwnForegroundColour((61, 89, 171))
+        self.Bind(wx.EVT_TIMER,self.sync_lyrics,self.sync_lyrics_timer)
+        self.sync_lyrics_timer.Start(100)
 
     def storgetimeleep(self,evt):
         obj = evt.GetEventObject()
@@ -633,6 +654,7 @@ class MainFrame(wx.Frame):
             #self.music.set_pos(self.timeleeplist[-1])
             self.music.stop()
             self.music.play(loops=1, start=(self.timeleeplist[-1]))
+            self.medium_row.SetLabel("* * * * * *")
             #self.timeleeplist = [0]
 
         #self.after_id = self.after(1000, self.timer)
