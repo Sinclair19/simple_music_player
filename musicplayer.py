@@ -167,7 +167,7 @@ class MainFrame(wx.Frame):
 
         self.progress = wx.StaticText(self, label='00:00', pos=(1165, 628))
 
-        # 上述按钮的监听器
+        # 按钮监听器
         last_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_last_music)
         self.play_stop_button.Bind(wx.EVT_LEFT_DOWN, self.play_stop_music)
         next_music_button.Bind(wx.EVT_LEFT_DOWN, self.play_next_music)
@@ -207,10 +207,7 @@ class MainFrame(wx.Frame):
             return None
 
     def play_music(self):
-        '''
-        重新载入，播放音乐
-        :return:
-        '''
+        #载入，播放音乐
         current_music_path = self.get_path_by_name(self.local_music_name_list[self.current_music_index])
         self.music.load(current_music_path)
         self.current_music_path = current_music_path
@@ -234,13 +231,13 @@ class MainFrame(wx.Frame):
             self.draw_music_cover_panel()
         self.update_total_music_time()
 
-        # step3：开启新线程，追踪歌词
+        # step3：追踪歌词
         self.music_lyric_panel = wx.Panel(self, id=-1, pos=(550, 0), size=(self.width - 550, self.height - 130))
 
         if self.get_lyric_path() is None or not os.path.exists(self.get_lyric_path()):
             self.current_lyrics_word_list = []
             self.current_lyrics_time_list = []
-            self.medium_row = wx.StaticText(self.music_lyric_panel, -1, label='暂无歌词', pos=(100, 280),
+            self.medium_row = wx.StaticText(self.music_lyric_panel, -1, label='纯音乐或暂无歌词', pos=(100, 280),
                                             size=(400, -1), style=wx.ALIGN_CENTER)
             self.medium_row.SetOwnForegroundColour((61, 89, 171))
         else:
@@ -262,6 +259,7 @@ class MainFrame(wx.Frame):
         if len(current_music_name) > MAX_MUSIC_NAME_LEN:
             current_music_name = current_music_name[0:MAX_MUSIC_NAME_LEN] + "..."
         self.current_music_static_text.SetLabelText(namelist[0])
+        self.current_music_static_text.Refresh()
 
         self.timeleeplist=[0]
         self.play_slider.SetRange(0, int(self.current_music_length))
@@ -273,10 +271,7 @@ class MainFrame(wx.Frame):
         #self.createTimer
 
     def play_index_music(self, music_index):
-        '''
-        播放指定索引的音乐
-        :return:
-        '''
+        #播放指定索引的音乐
         self.current_music_index = music_index
         # 载入音乐
         self.play_music()
@@ -363,26 +358,19 @@ class MainFrame(wx.Frame):
                 start_time = float(lyric[1:3]) * 60 + float(lyric[4:6]) + float(lyric[7:9]) / 100
                 self.current_lyrics_time_list.append(start_time)
 
-    def thread_sync_lyrics(self):
-        #while self.music.get_busy():
-        lyric_sync_thread = Thread(target=self.sync_lyrics)
-        lyric_sync_thread.start()
-
-
     def sync_lyrics(self,evt):
         current_time = self.play_slider.GetValue()
         timelist = self.current_lyrics_time_list
         for point in range(len(timelist)):
-            if abs(current_time-timelist[point])<=1:
+            if abs(current_time-timelist[point])<=0.8:
                 self.medium_row.SetLabelText(self.current_lyrics_word_list[point])
-                self.set_upside_lyrics(point)
                 self.set_downside_lyrics(point)
-                #self.music_lyric_panel.Refresh()
-                #time.sleep(0.5)
+                self.set_upside_lyrics(point)
             else:
                 pass
 
     def set_upside_lyrics(self,row):
+        #print(f"upside{row}")
         if row-9 <=0:
             start = 0
             for i in range(start, row):
@@ -395,11 +383,15 @@ class MainFrame(wx.Frame):
                 j += 1
 
     def set_downside_lyrics(self,row):
+        #print(f"downside{row}")
         if row+9 >= len(self.current_lyrics_word_list):
             j = 0
-            for i in range(row+1, len(self.current_lyrics_word_list)):
-                self.downside_lyrics_list[j].SetLabelText(self.current_lyrics_word_list[i])
+            k = len(self.current_lyrics_word_list) - row
+            for i in range(k):
+                self.downside_lyrics_list[i-1].SetLabelText(self.current_lyrics_word_list[row+j])
                 j += 1
+            for k in range(len(self.current_lyrics_word_list)-row-10,0):
+                self.downside_lyrics_list[k].SetLabelText('')
         else:
             end = row+10
             j = 0
@@ -433,7 +425,7 @@ class MainFrame(wx.Frame):
         play_slider_song_len.SetOwnForegroundColour((41, 36, 33))
         play_slider_song_len.Refresh()
 
-    def updatemusicslider(self,evt):
+    def update_music_slider(self,evt):
         offest = int(self.music.get_pos()/1000)+self.settime
         self.play_slider.SetValue(offest)
 
@@ -446,13 +438,9 @@ class MainFrame(wx.Frame):
         self.progress.SetLabel(progress_text)
         self.play_slider.SetToolTip(f'当前播放进度 {progress_text}')
 
-        #lyric_sync_thread = Thread(target=self.sync_lyrics())
-        #lyric_sync_thread.start()
-        #self.sync_lyrics()
-
     def createTimer(self):
         self.slider_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self.updatemusicslider,self.slider_timer)
+        self.Bind(wx.EVT_TIMER, self.update_music_slider,self.slider_timer)
         self.slider_timer.Start(100)
         self.text_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.onUpdateText,self.text_timer)
@@ -467,14 +455,8 @@ class MainFrame(wx.Frame):
         self.timeleeplist.append(val)
 
     def timer(self,evt):
-        #if self.after_id is not None:
-        #    self.after_cancel(self.after_id)
-        #    self.after_id = None
         obj = evt.GetEventObject()
         val = obj.GetValue()
-        #offset = self.play_slider.GetValue()
-        #print(offset)
-        #self.settime = 0
         self.settime = val
         self.timeleeplist.append(val)
         if len(self.timeleeplist) > 3:
@@ -495,10 +477,6 @@ class MainFrame(wx.Frame):
             for i in range(len(self.downside_lyrics_list)):
                 self.downside_lyrics_list[i].SetLabelText(' ')
             #self.timeleeplist = [0]
-
-        #self.after_id = self.after(1000, self.timer)
-        #evt.Skip()
-        #self.music.set_pos(offset)
 
     def OnClose(self, evt):
         dlg = wx.MessageDialog(None, u'确定要关闭本窗口？', u'操作提示', wx.YES_NO | wx.ICON_QUESTION)
