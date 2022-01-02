@@ -362,7 +362,7 @@ class MainFrame(wx.Frame):
         current_time = self.play_slider.GetValue()
         timelist = self.current_lyrics_time_list
         for point in range(len(timelist)):
-            if abs(current_time-timelist[point])<=0.8:
+            if abs(current_time-timelist[point])<=0.7:
                 self.medium_row.SetLabelText(self.current_lyrics_word_list[point])
                 self.set_downside_lyrics(point)
                 self.set_upside_lyrics(point)
